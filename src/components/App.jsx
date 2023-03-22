@@ -1,25 +1,21 @@
 import { useState, useEffect } from 'react';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Searchbar from 'components/Searchbar/Searchbar';
 import Modal from 'components/Modal/Modal';
 import ImageGallery from 'components/ImageGallery/ImageGallery';
 import Button from 'components/Button/Button';
-import Text from 'components/Text/Text';
 import Loader from 'components/Loader/Loader';
 import fetchPhoto from 'services/Api';
 import 'style.css';
 
 export default function App() {
-  const per_page = 12;
-
-  const [images, setImages] = useState([]);
-  const [page, setPage] = useState(1);
-  const [error, setError] = useState(null);
-  const [isNextPage, setIsNextPage] = useState(false);
-  const [status, setStatus] = useState('idle');
-  const [shoowModal, setShoowModal] = useState(false);
   const [searchingQuery, setSearchingQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [isNextPage, setIsNextPage] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [shoowModal, setShoowModal] = useState(false);
   const [url, setUrl] = useState('');
   const [tag, setTag] = useState(null);
 
@@ -28,24 +24,15 @@ export default function App() {
       return;
     }
     async function fetchingPhotos() {
-      setStatus('pending');
       try {
-        const { hits, isTheNextPage } = await fetchPhoto(
-          searchingQuery,
-          page,
-          per_page
-        );
+        setIsNextPage(false);
+        setIsLoading(true);
+        const { hits, isTheNextPage } = await fetchPhoto(searchingQuery, page);
         setImages(pS => [...pS, ...hits]);
         setIsNextPage(isTheNextPage);
-        setStatus('resolved');
-
-        window.scrollTo({
-          top: document.documentElement.scrollHeight,
-          behavior: 'smooth',
-        });
+        setIsLoading(false);
       } catch (error) {
-        setError(error);
-        setStatus('rejected');
+        toast.error(error.message + 'Try again!');
       }
     }
     fetchingPhotos();
@@ -83,25 +70,14 @@ export default function App() {
         </Modal>
       )}
       <>
-        {status === 'idle' && <Text>Enter samething to find.</Text>}
-        {status === 'pending' && <Loader />}
-        {status === 'rejected' && <Text>{error.message}</Text>}
-        {status === 'resolved' && (
+        {images && (
           <>
             <ImageGallery images={images} onClick={handleOpendModal} />
-            {isNextPage ? (
-              <Button onClick={handleButtonClick} />
-            ) : (
-              <Text>There is no more photo.</Text>
-            )}
+            {isNextPage && <Button onClick={handleButtonClick} />}
           </>
         )}
+        {isLoading && <Loader />}
       </>
-      {/* <ImagesView
-        searchingQuery={searchingQuery}
-        onClick={handleModalClick}
-        togleModal={handleTogleModal
-      /> */}
     </div>
   );
 }
